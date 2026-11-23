@@ -16,7 +16,7 @@ class Card:
         if self.rank in "KJQ":
             return 10
         if self.rank == "A":
-            return 11   # The function to deal with A special case is in "black_jack.py"
+            return 11   # The function to deal with A special case is in "blackjack.py"
         return int(self.rank)
 
 
