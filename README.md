@@ -23,7 +23,7 @@ A command-line Blackjack game written in Python featuring a 6-deck shoe, interac
 
 1. Clone or download this repository and navigate to the project folder:
 ```bash
-cd your-repository-folder
+cd blackjack-cli
 
 ```
 
