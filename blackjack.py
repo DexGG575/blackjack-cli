@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import sys
 
 from cards import Card, Deck
@@ -6,6 +7,9 @@ from cards import Card, Deck
 
 def main() -> None:
     deck = Deck()
+    balance: float = 100.0
+    gambling: bool = False
+
     # Deals with the A special case
     def hand_value(hand: list[Card]) -> int:
         total = sum(card.point() for card in hand)
@@ -16,15 +20,16 @@ def main() -> None:
             aces -= 1
 
         return total
+
     # Welcome the player and explain the game to him
-    def greetings() -> None:
+    def greetings() -> bool:
         print("\n" + "=" * 34)
         print("     ♠ ♥  BLACKJACK  ♦ ♣")
         print("=" * 34)
         print("\n  Welcome to the table!")
 
         while True:
-            played = input("  Have you played Blackjack before? [y/n]: ").lower()
+            played = input("  Have you played Blackjack before? [y/n]: ").strip().lower()
 
             if played == "n":
                 print("\n  ── How to play ──────────────────────────")
@@ -53,7 +58,7 @@ def main() -> None:
                 print("  ─────────────────────────────────────────\n")
 
                 while True:
-                    understand = input("  Did you understand? [y/n]: ").lower()
+                    understand = input("  Did you understand? [y/n]: ").strip().lower()
 
                     if understand == "y":
                         print("\n  Great! let's play! 🎲")
@@ -62,22 +67,77 @@ def main() -> None:
                         print("  Please, read the instructions again.")
                         continue
 
-                    print("  Please, chose between 'y' or 'n'.")
+                    print("  Please, choose between 'y' or 'n'.")
 
                 break
             elif played == "y":
                 print("\n  Great! let's play! 🎲")
                 break
 
-            print("  Please, chose between 'y' or 'n'.")
+            print("  Please, choose between 'y' or 'n'.")
+
+        print("\n  ── Gambling mode ────────────────────────")
+        print("  • You start with $100.00.")
+        print("  • A normal win pays 1:1.")
+        print("  • A real Blackjack pays 3:2.")
+        print("  • If the dealer's revealed card is an Ace,")
+        print("    you may take a safe bet (insurance) for")
+        print("    half of your bet. It pays 2:1 if the")
+        print("    dealer makes a real Blackjack.")
+        print("  • If you lose all your money, you are")
+        print("    broke and the game ends.")
+        print("  ─────────────────────────────────────────\n")
+
+        while True:
+            want = input("  Do you want to gamble? [y/n]: ").strip().lower()
+
+            if want == "y":
+                print("\n  💰 Gambling mode on. Good luck!")
+                return True
+            elif want == "n":
+                print("\n  No problem, we'll play for fun then.")
+                return False
+
+            print("  Please, choose between 'y' or 'n'.")
+
     # The real game
-    def black_jack() -> None:
+    def blackjack() -> None:
+        nonlocal balance
+
         player = []
         dealer = []
 
         print("\n" + "=" * 34)
         print("     ♠ ♥  BLACKJACK  ♦ ♣")
         print("=" * 34)
+
+        bet = 0.0
+        insurance = 0.0
+
+        if gambling:
+            print(f"\n  💰 Your balance: ${balance:.2f}")
+
+            while True:
+                raw = input(f"  Place your bet (0.00 - {balance:.2f}): $").strip()
+
+                try:
+                    bet = float(raw)
+                except ValueError:
+                    print("  Please, enter a valid number, like 5.78.")
+                    continue
+
+                if not math.isfinite(bet) or bet <= 0.0 or bet > balance:
+                    print(f"  Your bet must be greater than 0.0 and at most ${balance:.2f}.")
+                    continue
+
+                bet = round(bet, 2)
+                if bet <= 0.0:
+                    print("  Your bet must be at least $0.01.")
+                    continue
+
+                break
+
+            balance -= bet
 
         if deck.needs_reshuffle():
             deck.refill()
@@ -97,6 +157,29 @@ def main() -> None:
         print(f"  Your points    : {player_points}")
         print(f"  Dealer shows   : {dealer[0]}")
 
+        # Safe bet (insurance) when the dealer shows an Ace.
+        if gambling and dealer[0].rank == "A":
+            print("\n  Dealer's revealed card is an Ace.")
+
+            if balance >= bet / 2:
+                while True:
+                    safe = input(
+                        "  Take a safe bet for half your bet? [y/n]: "
+                    ).strip().lower()
+
+                    if safe == "y":
+                        insurance = bet / 2
+                        balance -= round((insurance), 2)
+                        print(f"  Insurance bet  : ${insurance:.2f}")
+                        break
+                    elif safe == "n":
+                        print("  No insurance taken.")
+                        break
+
+                    print("  Please, choose between 'y' or 'n'.")
+            else:
+                print("  You can't afford the safe bet.")
+
         # Blackjack: first two cards total 21
         player_blackjack = len(player) == 2 and player_points == 21
         dealer_blackjack = len(dealer) == 2 and dealer_points == 21
@@ -106,10 +189,27 @@ def main() -> None:
 
             if player_blackjack and dealer_blackjack:
                 print("\n  🤝 It's a draw!")
+                if gambling:
+                    balance += bet
+                    print(f"  Your bet of ${bet:.2f} is returned.")
             elif player_blackjack:
                 print("\n  🎉 Blackjack! You won! 😄")
+                if gambling:
+                    payout = bet * 1.5
+                    balance += round((bet + payout), 2)
+                    print(f"  Blackjack pays 3:2. You won ${payout:.2f}!")
             else:
                 print("\n  💥 Dealer has blackjack. You lost! 😭")
+                if gambling:
+                    print(f"  You lost ${bet:.2f}.")
+
+            if gambling and insurance:
+                if dealer_blackjack:
+                    payout = insurance * 2
+                    balance += round((insurance + payout), 2)
+                    print(f"  Insurance pays 2:1. You won ${payout:.2f}!")
+                else:
+                    print(f"  Insurance lost: ${insurance:.2f}.")
 
             print("\n" + "=" * 34 + "\n")
         else:
@@ -117,19 +217,19 @@ def main() -> None:
             while True:
                 print("\n" + "=" * 34 + "\n")
 
-                choice = input("  Hit or stand? [h/s]: ").lower()
+                choice = input("  Hit or stand? [h/s]: ").strip().lower()
 
                 count = 0
                 while choice not in ("h", "s"):
                     if count == 0:
                         count += 1
-                        choice = input("  Please choose between 'h' or 's': ").lower()
+                        choice = input("  Please choose between 'h' or 's': ").strip().lower()
                     elif count == 1:
                         count += 1
-                        choice = input("  It's between 'h' OR 's': ").lower()
+                        choice = input("  It's between 'h' OR 's': ").strip().lower()
                     elif count == 2:
                         count += 1
-                        choice = input("  'H' OR 'S'!: ").lower()
+                        choice = input("  'H' OR 'S'!: ").strip().lower()
                     else:
                         print("  I HATE YOU! 🤬")
                         sys.exit(0)
@@ -147,6 +247,10 @@ def main() -> None:
 
                 if player_points > 21:
                     print("\n  💥 You busted! You lost! 😭")
+                    if gambling:
+                        print(f"  You lost ${bet:.2f}.")
+                        if insurance:
+                            print(f"  Insurance lost: ${insurance:.2f}.")
                     print("\n" + "=" * 34 + "\n")
                     break
 
@@ -170,27 +274,46 @@ def main() -> None:
 
                 if dealer_points > 21 or player_points > dealer_points:
                     print("\n  🎉 You won! 😄")
+                    if gambling:
+                        payout = bet
+                        balance += round((bet + payout), 2)
+                        print(f"  You won ${payout:.2f}!")
                 elif dealer_points > player_points:
                     print("\n  💥 You lost! 😭")
+                    if gambling:
+                        print(f"  You lost ${bet:.2f}.")
                 else:
                     print("\n  🤝 It's a draw!")
+                    if gambling:
+                        balance += round((bet), 2)
+                        print(f"  Your bet of ${bet:.2f} is returned.")
+
+                if gambling and insurance:
+                    print(f"  Insurance lost: ${insurance:.2f}.")
 
                 print("\n" + "=" * 34 + "\n")
 
+        if gambling:
+            print(f"  💰 Your balance: ${balance:.2f}")
+
+            if balance <= 0:
+                print("\n  💸 You're broke! No more money to gamble. 😭")
+                sys.exit(0)
+
         while True:
-            play_again = input("  Want to play again? [y/n]: ").lower()
+            play_again = input("  Want to play again? [y/n]: ").strip().lower()
 
             if play_again == "y":
-                black_jack()
+                blackjack()
                 return
             elif play_again == "n":
                 print("\n  Thanks for your time! 😘")
                 sys.exit(0)
 
-            print("  Please, chose between 'y' or 'n'.")
+            print("  Please, choose between 'y' or 'n'.")
 
-    greetings()
-    black_jack()
+    gambling = greetings()
+    blackjack()
 
 
 if __name__ == "__main__":

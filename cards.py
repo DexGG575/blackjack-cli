@@ -31,7 +31,7 @@ class Deck:
     def refill(self) -> None:
         self.deck = [
             Card(rank, suit)
-            for i in range(self.DECKS_IN_SHOE)
+            for _ in range(self.DECKS_IN_SHOE)
             for suit in Card.SUITS
             for rank in Card.RANKS
         ]
