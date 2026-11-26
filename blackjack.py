@@ -22,7 +22,7 @@ def main() -> None:
         return total
 
     # Welcome the player and explain the game to him
-    def greetings() -> bool:
+    def greetings() -> None:
         print("\n" + "=" * 34)
         print("     ♠ ♥  BLACKJACK  ♦ ♣")
         print("=" * 34)
@@ -75,7 +75,8 @@ def main() -> None:
                 break
 
             print("  Please, choose between 'y' or 'n'.")
-
+    # Explains the gambling mode to the player and ask if he wants to play with it
+    def gamble_mode() -> bool:
         print("\n  ── Gambling mode ────────────────────────")
         print("  • You start with $100.00.")
         print("  • A normal win pays 1:1.")
@@ -312,7 +313,8 @@ def main() -> None:
 
             print("  Please, choose between 'y' or 'n'.")
 
-    gambling = greetings()
+    greetings()
+    gambling = gamble_mode()
     blackjack()
 
 
